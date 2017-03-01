@@ -1,0 +1,13 @@
+/* some style */
+.callie-view {
+    margin: 10px;
+}
+
+.callie-view th {
+    text-align: center;
+}
+
+.callie-view td.today {
+    background: #fcf8e3;
+}
+
