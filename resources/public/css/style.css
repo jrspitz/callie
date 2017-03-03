@@ -3,11 +3,28 @@
     margin: 10px;
 }
 
-.callie-view th {
+#cal-this-month {
+    margin-right: 10px;
+}
+
+.callie-view table {
+   table-layout: fixed; 
+}
+
+.callie-view .weekdays th {
     text-align: center;
+    padding: 0;
+}
+
+.callie-view td {
+    height: 80px;
 }
 
 .callie-view td.today {
     background: #fcf8e3;
+}
+
+.callie-view td.not-active-month .daynumber {
+    opacity: .3;
 }
 

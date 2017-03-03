@@ -101,7 +101,7 @@
         all-days (take 6 (partition 7 (iterate next-day sd)))]
     (for [week all-days]
       [:tr 
-       (for [day week] [:td (day-cell day)])])))
+       (for [day week] (day-cell day))])))
 
 (def prev-next-today-btns 
   (list 
