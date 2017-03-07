@@ -1,24 +1,31 @@
 (ns callie.core
   (:import goog.date.Date
-           goog.i18n.DateTimeSymbols_en
-           goog.date.Interval)
+           goog.i18n.DateTimeFormat
+           goog.date.Interval
+           goog.net.XhrIo)
   (:require [hipo.core :as hipo]
             [clojure.string :as string]
             [goog.dom :as dom]))
 
 (enable-console-print!)
-(def DateSym goog.i18n.DateTimeSymbols_en)
-;(js/console.log DateSym) 
+
+(def WEEKDAY-NAMES goog.i18n.DateTimeSymbols.STANDALONESHORTWEEKDAYS)
+(def month-week-formatter (DateTimeFormat. "MMMM y"))
+(def event-time-formatter (DateTimeFormat. "H:mm a"))
 
 (defn this-month []
   (let [d (Date.)]
     (.setDate d 1)
     d))
 
-(defonce calendar-state (atom {:active-date (this-month)}))
+(defonce calendar-state (atom {:active-date (this-month)
+                               :events []}))
 
-(def a-day
+(def plus-day
   (goog.date.Interval. goog.date.Interval.DAYS 1))
+
+(def minus-day 
+  (goog.date.Interval. goog.date.Interval.DAYS -1))
 
 (def plus-month
   (goog.date.Interval. goog.date.Interval.MONTHS 1))
@@ -26,9 +33,16 @@
 (def minus-month 
   (goog.date.Interval. goog.date.Interval.MONTHS -1))
 
+
+;; Date math wrapers to make these functions immutable.
 (defn next-day [d]
   (let [nd (.clone d)]
-    (.add nd a-day)
+    (.add nd plus-day)
+    nd))
+
+(defn prev-day [d]
+  (let [nd (.clone d)]
+    (.add nd minus-day)
     nd))
 
 (defn next-month [d]
@@ -40,6 +54,8 @@
   (let [nd (.clone d)]
     (.add nd minus-month)
     nd))
+
+
 
 (defn next-month! []
   (swap! calendar-state update-in [:active-date] next-month))
@@ -53,23 +69,16 @@
 (def today (Date.))
 
 (defn start-day
-  "First day to display on the calendar.  It's got to be a sunday"
+  "First day to display on the calendar. Count back from the given date until
+  the day is sunday (0)."
   [d]
-  (let [a-day-ago (goog.date.Interval. goog.date.Interval.DAYS -1)]
-    (loop [cur-day (.clone d)]
-      (if (zero? (.getDay cur-day))
-        cur-day
-        (do (.add cur-day a-day-ago)
-            (recur cur-day))))))
-
-;; Month and Year string
-(defn month-year-string [d]
-  (let [m (.getMonth d)
-        YYYY (.getFullYear d)]
-    (str (aget DateSym.MONTHS m) " " YYYY)))
+  (loop [d d]
+    (if (zero? (.getDay d))
+      d
+      (recur (prev-day d)))))
 
 (defn month-year-span [d]
-  [:span {:id "cal-month-year"} (month-year-string d)])
+  [:span {:id "cal-month-year"} (.format month-week-formatter d)])
 
 (defn is-today? [d]
   (.equals d today))
@@ -80,7 +89,7 @@
 
 (def weekday-row 
   [:tr.weekdays
-   (for [x DateSym.SHORTWEEKDAYS] 
+   (for [x WEEKDAY-NAMES] 
      [:th x])])
 
 (defn day-classes [d]
@@ -105,7 +114,7 @@
 
 (def prev-next-today-btns 
   (list 
-    [:div {:class "btn-grp pull-right"}
+    [:div {:class "btn-group pull-right"}
         [:button#cal-prev {:class "btn btn-default"
                            :type "button" 
                            :on-click prev-month!} "←"]
@@ -149,9 +158,10 @@
 (inject-cal! (:active-date @calendar-state))
 
 ;(js/console.log @calendar-state)
+;(js/console.log (:active-date @calendar-state))
 ;(js/console.log calendar-state)
 ;(js/console.log (calendar-hiccup (:active-date @calendar-state)))
-(cljs.pprint/pprint (calendar-hiccup (:active-date @calendar-state)))
+;(cljs.pprint/pprint (calendar-hiccup (:active-date @calendar-state)))
 ;(def testhiccup 
 ;  (list [:div {:id "test1"}]
 ;        [:div {:id "test2"} (list [:div {:id "nesty1"}] 
