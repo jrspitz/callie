@@ -23,15 +23,23 @@
     (random-event year month)))
 
 (defn put-random-event [year month]
-  (let [xhr (XhrIo.)
+  (let [;xhr (XhrIo.)
         data (-> (random-event year month)
                  clj->js
                  js/JSON.stringify)]
-    (.setWithCredentials xhr true)
-    (.send xhr
-           rem-uri
-           "POST"
-           data)))
+    ;(.setWithCredentials xhr true)
+    ;(.send xhr
+    ;       rem-uri
+    ;       "POST"
+    ;       data)))
+    (XhrIo.send rem-uri
+                #(print %)
+                "POST"
+                data 
+                nil
+                0
+                true)))
+
 
 (defn put-random-events [qty year month]
   (repeatedly qty #(put-random-event year month)))

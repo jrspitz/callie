@@ -21,7 +21,7 @@
 
 (defonce calendar-state (atom {:active-date (this-month)
                                :events []
-                               :event-source nil
+                               :event-source "http://rem-rest-api.herokuapp.com/api/events/"
                                :event-transform nil}))
 
 (def plus-day
@@ -79,6 +79,17 @@
       d
       (recur (prev-day d)))))
 
+
+(defn is-event-on-date? 
+  [event date]
+  (let [event-date (Date. (:start event))]
+    (.equals date event-date)))
+
+(defn days-events
+  "Get the events for the given day"
+  [d events]
+  (filter #(is-event-on-date? % d) events))
+
 (defn month-year-span [d]
   [:span {:id "cal-month-year"} (.format month-week-formatter d)])
 
@@ -129,35 +140,28 @@
 
 (defn calendar-hiccup
   "Hiccup tempate for the calendar"
-  [d]
+  [calendar-state]
+  (let [d (:active-date calendar-state)]
     [:div.callie-view
      prev-next-today-btns 
      [:h2 {:class "month-year"} (month-year-span d)]
      [:table.table.table-bordered
       [:thead weekday-row]
-      [:tbody (calendar-body d)]]])
+      [:tbody (calendar-body d)]]]))
 
-; Not using this.  Adding event listeners inline.
-(defn addEventListeners! []
-  (let [prev-btn (dom/getElement "cal-prev")
-        next-btn (dom/getElement "cal-next")
-        this-month-btn (dom/getElement "cal-this-month")]
-    (.addEventListener this-month-btn "click" this-month!)
-    (.addEventListener prev-btn "click" prev-month!)
-    (.addEventListener next-btn "click" next-month!)))
 
-(defn inject-cal! [d] 
-  (let [el (hipo/create (calendar-hiccup d))
+(defn inject-cal! [calendar-state] 
+  (let [el (hipo/create (calendar-hiccup calendar-state))
         container (.getElementById js/document "calendar")] 
-  (dom/removeChildren container)
-  (.appendChild (.getElementById js/document "calendar") el)))
+    (dom/removeChildren container)
+    (.appendChild (.getElementById js/document "calendar") el)))
 
 (add-watch calendar-state :redraw
           (fn [key atom old-state new-state]
-            (js/console.log (:active-date new-state))
-            (inject-cal! (:active-date new-state)))) 
+            (js/console.log new-state)
+            (inject-cal! new-state))) 
 
-(inject-cal! (:active-date @calendar-state))
+(inject-cal! @calendar-state)
 
 
 (defn set-event-source!  
@@ -167,6 +171,11 @@
 (defn set-event-transform!
   [f]
   (swap! calendar-state update-in [:event-transform] f))
+
+;(defn fetch-events!
+;  []
+;  (when-let [endpoint (:event-source @calendar-state)]
+;    (.send goog.net.XhrIo endpoint "GET" nil 
 
 
 ;(js/console.log @calendar-state)
