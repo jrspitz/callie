@@ -2,7 +2,8 @@
   (:import goog.date.DateTime
            goog.date.Interval
            goog.Uri
-           goog.net.XhrIo))
+           goog.net.XhrIo)
+  (:require [callie.core :as callie]))
   
 (def rem-uri "http://rem-rest-api.herokuapp.com/api/events")
 
@@ -16,7 +17,7 @@
   (let [event-date (DateTime. year (dec month) 1)
         rand-interval (Interval. Interval.HOURS (rand-int (* 28 24)))]
     (.add event-date rand-interval)
-    {:title (.toString (random-uuid)) :start (.toIsoString event-date)}))
+    {:title (.toString (random-uuid)) :start (.toIsoString event-date true)}))
 
 (defn random-events [quantity year month]
   (for [x (range quantity)]
@@ -40,6 +41,8 @@
                 0
                 true)))
 
-
 (defn put-random-events [qty year month]
   (repeatedly qty #(put-random-event year month)))
+
+(defn pop-random-events [qty year month]
+  (callie/set-events! (clj->js (random-events qty year month))))

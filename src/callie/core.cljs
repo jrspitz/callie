@@ -1,5 +1,6 @@
 (ns callie.core
   (:import goog.date.Date
+           goog.date.DateTime
            goog.i18n.DateTimeFormat
            goog.date.Interval
            goog.net.XhrIo
@@ -21,8 +22,9 @@
 
 (defonce calendar-state (atom {:active-date (this-month)
                                :events []
-                               :event-source "http://rem-rest-api.herokuapp.com/api/events/"
-                               :event-transform nil}))
+                               :event-source nil
+                               :event-transform nil
+                               :event-callback nil}))
 
 (def plus-day
   (goog.date.Interval. goog.date.Interval.DAYS 1))
@@ -85,7 +87,7 @@
   (let [event-date (Date. (:start event))]
     (.equals date event-date)))
 
-(defn days-events
+(defn days-events-filter
   "Get the events for the given day"
   [d events]
   (filter #(is-event-on-date? % d) events))
@@ -111,19 +113,26 @@
     (is-active-month? d) (conj "active-month")
     (not (is-active-month? d)) (conj "not-active-month")))
 
-(defn day-cell [d]
+(defn event-div [ev]
+  [:div {:class ["event"]}
+   [:a [:span.time (.format event-time-formatter (:start ev))]
+       [:span.title (:title ev)]]])
+
+(defn day-cell [d events]
   [:td 
    {:class (string/join " " (day-classes d))} 
-   [:span {:class "daynumber"} (.getDate d)]])
+   [:span {:class "daynumber"} (.getDate d)]
+   (for [ev (days-events-filter d events)]
+     (event-div ev))])
 
 (defn calendar-body 
   "6 weeks of days (The body of the calendar.)"
-  [d]
+  [d events]
   (let [sd (start-day d)
         all-days (take 6 (partition 7 (iterate next-day sd)))]
     (for [week all-days]
       [:tr 
-       (for [day week] (day-cell day))])))
+       (for [day week] (day-cell day events))])))
 
 (def prev-next-today-btns 
   (list 
@@ -141,13 +150,14 @@
 (defn calendar-hiccup
   "Hiccup tempate for the calendar"
   [calendar-state]
-  (let [d (:active-date calendar-state)]
+  (let [d (:active-date calendar-state)
+        events (:events calendar-state)]
     [:div.callie-view
      prev-next-today-btns 
      [:h2 {:class "month-year"} (month-year-span d)]
      [:table.table.table-bordered
       [:thead weekday-row]
-      [:tbody (calendar-body d)]]]))
+      [:tbody (calendar-body d events)]]]))
 
 
 (defn inject-cal! [calendar-state] 
@@ -158,6 +168,7 @@
 
 (add-watch calendar-state :redraw
           (fn [key atom old-state new-state]
+            (js/console.log (pr (calendar-hiccup new-state)))
             (js/console.log new-state)
             (inject-cal! new-state))) 
 
@@ -168,13 +179,23 @@
   [uri]
   (swap! calendar-state update-in [:event-source] uri))
 
+(defn read-events [events]
+  (for [ev events]
+      (-> (js->clj ev :keywordize-keys true)
+          (update-in [:start] DateTime.fromRfc822String))))
+
+(defn set-events!
+  [events]
+  (let [events (read-events events)]
+    (swap! calendar-state assoc :events events)))
+
 (defn set-event-transform!
   [f]
   (swap! calendar-state update-in [:event-transform] f))
 
 ;(defn fetch-events!
 ;  []
-;  (when-let [endpoint (:event-source @calendar-state)]
+;  (when-let [fetch-fn (:event-source @calendar-state)]
 ;    (.send goog.net.XhrIo endpoint "GET" nil 
 
 
