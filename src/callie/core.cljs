@@ -2,7 +2,8 @@
   (:import goog.date.Date
            goog.i18n.DateTimeFormat
            goog.date.Interval
-           goog.net.XhrIo)
+           goog.net.XhrIo
+           goog.Uri)
   (:require [hipo.core :as hipo]
             [clojure.string :as string]
             [goog.dom :as dom]))
@@ -19,7 +20,9 @@
     d))
 
 (defonce calendar-state (atom {:active-date (this-month)
-                               :events []}))
+                               :events []
+                               :event-source nil
+                               :event-transform nil}))
 
 (def plus-day
   (goog.date.Interval. goog.date.Interval.DAYS 1))
@@ -54,7 +57,6 @@
   (let [nd (.clone d)]
     (.add nd minus-month)
     nd))
-
 
 
 (defn next-month! []
@@ -156,6 +158,16 @@
             (inject-cal! (:active-date new-state)))) 
 
 (inject-cal! (:active-date @calendar-state))
+
+
+(defn set-event-source!  
+  [uri]
+  (swap! calendar-state update-in [:event-source] uri))
+
+(defn set-event-transform!
+  [f]
+  (swap! calendar-state update-in [:event-transform] f))
+
 
 ;(js/console.log @calendar-state)
 ;(js/console.log (:active-date @calendar-state))
