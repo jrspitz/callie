@@ -46,3 +46,13 @@
 
 (defn pop-random-events [qty year month]
   (callie/set-events! (clj->js (random-events qty year month))))
+
+
+(defn my-event-source [start end callback]
+  (let [start (DateTime.fromRfc822String start)
+        events (random-events 10
+                              (.getYear start)
+                              (.getMonth start))]
+    (callback (clj->js events))))
+
+

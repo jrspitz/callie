@@ -198,6 +198,7 @@
 
 ;; javascript friendly externs
 ;;
+
 (defn ^:export setEvents [events]
   (set-events! events))
 
