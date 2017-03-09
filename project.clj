@@ -32,7 +32,9 @@
                            ;; started and complied your application.
                            ;; Comment this out once it no longer serves you.
                            ;;:open-urls ["http://localhost:3449/index.html"]
-                           :websocket-host "clojurefun.lxc"}
+                           ;;:websocket-host "clojurefun.lxc"
+                           ;;websocket-host "10.84.59.186"}
+                           :websocket-host :js-client-host}
 
                 :compiler {:main callie.core
                            :asset-path "js/compiled/out"

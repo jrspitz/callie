@@ -167,8 +167,8 @@
 
 (add-watch calendar-state :redraw
           (fn [key atom old-state new-state]
-            (js/console.log (pr (calendar-hiccup new-state)))
-            (js/console.log new-state)
+            ;(js/console.log (pr (calendar-hiccup new-state)))
+            ;(js/console.log new-state)
             (inject-cal! new-state))) 
 
 (inject-cal! @calendar-state)
@@ -182,8 +182,11 @@
  
 (defn set-events!
   [events]
-  (let [events (read-events events)]
-    (swap! calendar-state assoc :events events)))
+  (let [events (read-events events)
+        sorted-events (sort-by (fn [x] 
+                                 (.valueOf (:start x)))
+                               events)]
+    (swap! calendar-state assoc :events sorted-events)))
 
 (defn set-event-source! [f]
   (swap! calendar-state update-in [:event-source] f))
