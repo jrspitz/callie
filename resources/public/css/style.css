@@ -28,3 +28,30 @@
     opacity: .3;
 }
 
+.callie-view .event-container a {
+   cursor: pointer;
+   color: #fff;
+   text-decoration: none;
+   margin-bottom: 5px;
+}
+
+.event-container {
+    white-space: normal;
+    border-radius: 3px;
+    border: 1px solid #3a87ad;
+    background-color: #3a87ad;
+    margin-bottom: 3px;
+    overflow: hidden;
+}
+
+.callie-view span.time {
+    margin-right: 4px;
+    white-space: nowrap;
+    font-weight: bold;
+}
+
+.callie-view table>tbody>tr>td {
+    padding-left: 0;
+    padding-right: 0;
+}
+

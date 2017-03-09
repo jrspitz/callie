@@ -13,7 +13,7 @@
 
 (def WEEKDAY-NAMES goog.i18n.DateTimeSymbols.STANDALONESHORTWEEKDAYS)
 (def month-week-formatter (DateTimeFormat. "MMMM y"))
-(def event-time-formatter (DateTimeFormat. "H:mm a"))
+(def event-time-formatter (DateTimeFormat. "h:mm a"))
 
 (defn this-month []
   (let [d (Date.)]
@@ -23,8 +23,7 @@
 (defonce calendar-state (atom {:active-date (this-month)
                                :events []
                                :event-source nil
-                               :event-transform nil
-                               :event-callback nil}))
+                               :event-click nil}))
 
 (def plus-day
   (goog.date.Interval. goog.date.Interval.DAYS 1))
@@ -114,9 +113,10 @@
     (not (is-active-month? d calendar-state)) (conj "not-active-month")))
 
 (defn event-div [ev calendar-state]
-  [:div {:class ["event"]}
-   [:a [:span.time (.format event-time-formatter (:start ev))]
-       [:span.title (:title ev)]]])
+  [:div {:class "event-container"}
+   [:a {:class "callie-event" :on-click (:event-click calendar-state)} 
+    [:span.time (.format event-time-formatter (:start ev))]
+    [:span.title (:title ev)]]])
 
 (defn day-cell [d calendar-state]
   (let [days-events (days-events-filter d (:events calendar-state))]
@@ -173,24 +173,36 @@
 
 (inject-cal! @calendar-state)
 
-
-(defn set-event-source!  
-  [uri]
-  (swap! calendar-state update-in [:event-source] uri))
+(defn read-event [event]
+   (-> (js->clj event :keywordize-keys true)
+       (update-in [:start] DateTime.fromRfc822String)))
 
 (defn read-events [events]
-  (for [ev events]
-      (-> (js->clj ev :keywordize-keys true)
-          (update-in [:start] DateTime.fromRfc822String))))
-
+  (sort-by #(.valueOf :start) (map read-event events)))
+ 
 (defn set-events!
   [events]
   (let [events (read-events events)]
     (swap! calendar-state assoc :events events)))
 
-(defn set-event-transform!
-  [f]
-  (swap! calendar-state update-in [:event-transform] f))
+(defn set-event-source! [f]
+  (swap! calendar-state update-in [:event-source] f))
+
+
+(defn set-event-click! [f]
+  (swap! calendar-state update-in [:event-click] f))
+
+
+;; javascript friendly externs
+;;
+(defn ^:export setEvents [events]
+  (set-events! events))
+
+(defn ^:export reFetchEvents []
+  (js/console.error "not implemented"))
+  
+(defn ^:export setEventClick [f]
+  (set-event-click! [f]))
 
 ;(defn fetch-events!
 ;  []
