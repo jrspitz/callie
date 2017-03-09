@@ -15,6 +15,9 @@
 (def month-week-formatter (DateTimeFormat. "MMMM y"))
 (def event-time-formatter (DateTimeFormat. "h:mm a"))
 
+(defn date-to-datetime [d]
+  (DateTime.fromTimestamp (.valueOf d)))
+
 (defn this-month []
   (let [d (Date.)]
     (.setDate d 1)
@@ -24,6 +27,7 @@
                                :events []
                                :event-source nil
                                :event-click nil}))
+
 
 (def plus-day
   (goog.date.Interval. goog.date.Interval.DAYS 1))
@@ -79,6 +83,14 @@
     (if (zero? (.getDay d))
       d
       (recur (prev-day d)))))
+
+(defn last-day 
+  [d]
+  "The calendar always shows 42 days."
+  (let [nd (.clone (first-day d))]
+    (.add nd (Interval. Interval.DAYS 42))
+    nd))
+
 
 (defn is-event-on-date? 
   [event date]
@@ -165,13 +177,6 @@
     (dom/removeChildren container)
     (.appendChild (.getElementById js/document "calendar") el)))
 
-(add-watch calendar-state :redraw
-          (fn [key atom old-state new-state]
-            ;(js/console.log (pr (calendar-hiccup new-state)))
-            ;(js/console.log new-state)
-            (inject-cal! new-state))) 
-
-(inject-cal! @calendar-state)
 
 (defn read-event [event]
    (-> (js->clj event :keywordize-keys true)
@@ -179,9 +184,10 @@
 
 (defn read-events [events]
   (sort-by #(.valueOf :start) (map read-event events)))
- 
+
 (defn set-events!
   [events]
+  (js/console.log "Set events called")
   (let [events (read-events events)
         sorted-events (sort-by (fn [x] 
                                  (.valueOf (:start x)))
@@ -189,29 +195,78 @@
     (swap! calendar-state assoc :events sorted-events)))
 
 (defn set-event-source! [f]
-  (swap! calendar-state update-in [:event-source] f))
+  (swap! calendar-state assoc :event-source f))
+
+(defn dummy-event-source [start end cb]
+  (js/console.log "dummy-event-source called")
+  ;(js/console.log "start param")
+  ;(js/console.log start)
+  ;(js/console.log "end param")
+  ;(js/console.log end)
+  ;(js/console.log "callback")
+  ;(js/console.log cb)
+  )
+
+
+(set-event-source! dummy-event-source)
 
 
 (defn set-event-click! [f]
-  (swap! calendar-state update-in [:event-click] f))
+  (swap! calendar-state assoc :event-click f))
+
+
+(defn fetch-events [event-source]
+    (js/console.log event-source)
+    (let [start (-> (:active-date @calendar-state)
+                    (first-day)
+                    (date-to-datetime)
+                    (.toIsoString true true))
+          end (-> (:active-date @calendar-state)
+                  (last-day)
+                  (date-to-datetime)
+                  (.toIsoString true true))]
+      (event-source start end set-events!)))
+
+
+(add-watch calendar-state :redraw
+          (fn [key atom old-state new-state]
+            (js/console.log "redraw with events")
+            (js/console.log (:events new-state))
+              ; redraw the calendar
+              ;(js/console.log (pr (calendar-hiccup new-state)))
+              ;(js/console.log new-state)
+              ;(js/console.log (.valueOf (:active-date new-state)))
+              (inject-cal! new-state)))
+
+(add-watch calendar-state :fetch-events
+          (fn [key atom old-state new-state]
+              ; fetch new events if the date or the event source has changed
+              (when-not (and (.equals (:active-date old-state)
+                                     (:active-date new-state))
+                             (= (:event-source old-state)
+                                (:event-source new-state)))
+                (fetch-events (:event-source new-state)))))
+
+;(inject-cal! @calendar-state)
 
 
 ;; javascript friendly externs
 ;;
 
+(defn ^:export init []
+ (inject-cal! @calendar-state))
+
 (defn ^:export setEvents [events]
   (set-events! events))
 
-(defn ^:export reFetchEvents []
+(defn ^:export fetchEvents []
   (js/console.error "not implemented"))
   
 (defn ^:export setEventClick [f]
   (set-event-click! [f]))
 
-;(defn fetch-events!
-;  []
-;  (when-let [fetch-fn (:event-source @calendar-state)]
-;    (.send goog.net.XhrIo endpoint "GET" nil 
+(defn ^:export setEventSource [f]
+  (swap! calendar-state assoc :event-source f))
 
 
 ;(js/console.log @calendar-state)

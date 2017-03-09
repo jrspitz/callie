@@ -12,7 +12,8 @@
     (.setWithCredentials xhr true)
     xhr))
 
-(defn random-event [year month]
+(defn random-event 
+  [year month]
   ; months are zero indexed in goog.date but not this fn
   (let [event-date (DateTime. year (dec month) 1)
         rand-interval (Interval. Interval.HOURS (rand-int (* 28 24)))]
@@ -23,36 +24,32 @@
   (for [x (range quantity)]
     (random-event year month)))
 
-(defn put-random-event [year month]
-  (let [;xhr (XhrIo.)
-        data (-> (random-event year month)
-                 clj->js
-                 js/JSON.stringify)]
-    ;(.setWithCredentials xhr true)
-    ;(.send xhr
-    ;       rem-uri
-    ;       "POST"
-    ;       data)))
-    (XhrIo.send rem-uri
-                #(print %)
-                "POST"
-                data 
-                nil
-                0
-                true)))
-
-(defn put-random-events [qty year month]
-  (repeatedly qty #(put-random-event year month)))
-
 (defn pop-random-events [qty year month]
   (callie/set-events! (clj->js (random-events qty year month))))
 
+(defn random-event-from-datetime
+  [dt]
+  ; months are zero indexed in goog.date but not this fn
+  (let [init-date (.clone dt)
+        rand-interval (Interval. Interval.HOURS (rand-int (* 42 24)))]
+    (.add init-date rand-interval)
+    {:title (.toString (random-uuid)) :start (.toIsoString init-date true)}))
 
-(defn my-event-source [start end callback]
+
+(defn random-events-from-datetime [quantity dt]
+  (for [x (range quantity)] 
+    (random-event-from-datetime dt)))
+
+
+(defn random-event-source [start end callback]
+  (print "random-event-source called")
   (let [start (DateTime.fromRfc822String start)
-        events (random-events 10
-                              (.getYear start)
-                              (.getMonth start))]
-    (callback (clj->js events))))
+        events (random-events-from-datetime 20 start)
+        js-events (clj->js events)]
+    (print js-events)
+    (callback js-events)))
 
+
+(defn set-random-event-source! []
+  (callie.core/set-event-source! random-event-source))
 
