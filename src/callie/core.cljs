@@ -111,7 +111,7 @@
   (cond-> []
     (is-today? d) (conj "today")
     (is-active-month? d calendar-state) (conj "active-month")
-    (not (is-active-month? d)) (conj "not-active-month")))
+    (not (is-active-month? d calendar-state)) (conj "not-active-month")))
 
 (defn event-div [ev calendar-state]
   [:div {:class ["event"]}
