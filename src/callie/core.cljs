@@ -72,7 +72,7 @@
 
 (def today (Date.))
 
-(defn start-day
+(defn first-day
   "First day to display on the calendar. Count back from the given date until
   the day is sunday (0)."
   [d]
@@ -80,7 +80,6 @@
     (if (zero? (.getDay d))
       d
       (recur (prev-day d)))))
-
 
 (defn is-event-on-date? 
   [event date]
@@ -92,14 +91,15 @@
   [d events]
   (filter #(is-event-on-date? % d) events))
 
-(defn month-year-span [d]
-  [:span {:id "cal-month-year"} (.format month-week-formatter d)])
+(defn month-year-span [calendar-state]
+  (let [active-date (:active-date calendar-state)]
+    [:span {:id "cal-month-year"} (.format month-week-formatter active-date)]))
 
 (defn is-today? [d]
   (.equals d today))
 
-(defn is-active-month? [d]
-  (= (.getMonth (:active-date @calendar-state))
+(defn is-active-month? [d calendar-state]
+  (= (.getMonth (:active-date calendar-state))
      (.getMonth d)))
 
 (def weekday-row 
@@ -107,32 +107,33 @@
    (for [x WEEKDAY-NAMES] 
      [:th x])])
 
-(defn day-classes [d]
+(defn day-classes [d calendar-state]
   (cond-> []
     (is-today? d) (conj "today")
-    (is-active-month? d) (conj "active-month")
+    (is-active-month? d calendar-state) (conj "active-month")
     (not (is-active-month? d)) (conj "not-active-month")))
 
-(defn event-div [ev]
+(defn event-div [ev calendar-state]
   [:div {:class ["event"]}
    [:a [:span.time (.format event-time-formatter (:start ev))]
        [:span.title (:title ev)]]])
 
-(defn day-cell [d events]
-  [:td 
-   {:class (string/join " " (day-classes d))} 
-   [:span {:class "daynumber"} (.getDate d)]
-   (for [ev (days-events-filter d events)]
-     (event-div ev))])
+(defn day-cell [d calendar-state]
+  (let [days-events (days-events-filter d (:events calendar-state))]
+    [:td 
+     {:class (string/join " " (day-classes d calendar-state))} 
+     [:span {:class "daynumber"} (.getDate d)]
+     (for [ev days-events]
+       (event-div ev calendar-state))]))
 
 (defn calendar-body 
   "6 weeks of days (The body of the calendar.)"
-  [d events]
-  (let [sd (start-day d)
-        all-days (take 6 (partition 7 (iterate next-day sd)))]
+  [calendar-state]
+  (let [start-day (first-day (:active-date calendar-state))
+        all-days (take 6 (partition 7 (iterate next-day start-day)))]
     (for [week all-days]
       [:tr 
-       (for [day week] (day-cell day events))])))
+       (for [day week] (day-cell day calendar-state))])))
 
 (def prev-next-today-btns 
   (list 
@@ -150,14 +151,12 @@
 (defn calendar-hiccup
   "Hiccup tempate for the calendar"
   [calendar-state]
-  (let [d (:active-date calendar-state)
-        events (:events calendar-state)]
     [:div.callie-view
      prev-next-today-btns 
-     [:h2 {:class "month-year"} (month-year-span d)]
+     [:h2 {:class "month-year"} (month-year-span calendar-state)]
      [:table.table.table-bordered
       [:thead weekday-row]
-      [:tbody (calendar-body d events)]]]))
+      [:tbody (calendar-body calendar-state)]]])
 
 
 (defn inject-cal! [calendar-state] 
