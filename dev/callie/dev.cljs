@@ -18,7 +18,9 @@
   (let [event-date (DateTime. year (dec month) 1)
         rand-interval (Interval. Interval.HOURS (rand-int (* 28 24)))]
     (.add event-date rand-interval)
-    {:title (.toString (random-uuid)) :start (.toIsoString event-date true)}))
+    {:title (.toString (random-uuid))
+     :start (.toIsoString event-date true)
+     :className "addition-event-class"}))
 
 (defn random-events [quantity year month]
   (for [x (range quantity)]
@@ -33,7 +35,7 @@
   (let [init-date (.clone dt)
         rand-interval (Interval. Interval.HOURS (rand-int (* 42 24)))]
     (.add init-date rand-interval)
-    {:title (.toString (random-uuid)) :start (.toIsoString init-date true)}))
+    {:title (.toString (random-uuid)) :start (.toIsoString init-date true) :className "extra-event-class"}))
 
 
 (defn random-events-from-datetime [quantity dt]
@@ -59,6 +61,9 @@
   (console.log event)
   (console.log x))
 
+
+(defn set-dummy-click! []
+  (callie.core/set-event-click! dummy-click))
 ;(set-event-click! dummy-click)
 
 (defn dummy-event-source [start end cb]

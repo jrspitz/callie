@@ -52,7 +52,8 @@
                 :compiler {:output-to "resources/public/js/compiled/callie.js"
                            :main callie.core
                            :optimizations :advanced
-                           :pretty-print false}}]}
+                           :pretty-print false
+                           :preamble ["preamble.js"]}}]}
 
   :figwheel {;; :http-server-root "public" ;; default and assumes "resources"
              ;; :server-port 3449 ;; default

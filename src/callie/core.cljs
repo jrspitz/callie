@@ -9,11 +9,13 @@
             [clojure.string :as string]
             [goog.dom :as dom]))
 
-(enable-console-print!)
+;(enable-console-print!)
 
 (def WEEKDAY-NAMES goog.i18n.DateTimeSymbols.STANDALONESHORTWEEKDAYS)
 (def month-week-formatter (DateTimeFormat. "MMMM y"))
 (def event-time-formatter (DateTimeFormat. "h:mm a"))
+; dayname month/day/year
+(def day-date-formatter (DateTimeFormat. "E M/d/y"))
 
 (defn date-to-datetime [d]
   (DateTime.fromTimestamp (.valueOf d)))
@@ -23,7 +25,8 @@
     (.setDate d 1)
     d))
 
-(defonce calendar-state (atom {:active-date (this-month)
+(defonce calendar-state (atom {:container-id "calendar"
+                               :active-date (this-month)
                                :events []
                                :event-source nil
                                :event-click nil}))
@@ -134,17 +137,27 @@
       (fn [js-event] (click-handler (event-clj->js ev) js-event))
     false))
 
+(defn event-classes
+  "Use className attr to build event class names if suppled"
+  [ev]
+  (let [supplied-classes (:className ev)]
+    (if supplied-classes
+      (str "callie-event " supplied-classes)
+      "callie-event")))
+
 (defn event-div [ev calendar-state]
   [:div {:class "event-container"}
-   [:a {:class "callie-event" :on-click (event-click-fn ev calendar-state)}
-    [:span.time (.format event-time-formatter (:start ev))]
-    [:span.title (:title ev)]]])
+   [:a {:class (event-classes ev) :on-click (event-click-fn ev calendar-state)}
+    [:div {:class "event-content"}
+      [:span.time (.format event-time-formatter (:start ev))]
+      [:span.title (:title ev)]]]])
 
 (defn day-cell [d calendar-state]
   (let [days-events (days-events-filter d (:events calendar-state))]
     [:td 
      {:class (string/join " " (day-classes d calendar-state))} 
-     [:span {:class "daynumber"} (.getDate d)]
+     [:span {:class "day-number"} (.getDate d)]
+     [:span {:class "day-date"} (.format day-date-formatter d)]
      (for [ev days-events]
        (event-div ev calendar-state))]))
 
@@ -182,11 +195,12 @@
 
 
 (defn inject-cal! [calendar-state] 
-  (let [el (hipo/create (calendar-hiccup calendar-state))
-        container (.getElementById js/document "calendar")] 
-    (dom/removeChildren container)
-    (.appendChild (.getElementById js/document "calendar") el)))
-
+  (let [container-id (get calendar-state :container-id "calendar")]
+    (if-let [container (.getElementById js/document container-id)]
+      (let [el (hipo/create (calendar-hiccup calendar-state))]
+        (dom/removeChildren container)
+        (.appendChild container el))
+      (js/console.error (str "Container with id " container-id " not found.")))))
 
 (defn read-event [event]
    (-> (js->clj event :keywordize-keys true)
@@ -197,7 +211,6 @@
 
 (defn set-events!
   [events]
-  (js/console.log "Set events called")
   (let [events (read-events events)
         sorted-events (sort-by (fn [x] 
                                  (.valueOf (:start x)))
@@ -225,8 +238,6 @@
 
 (add-watch calendar-state :redraw
           (fn [key atom old-state new-state]
-            (js/console.log "redraw with events")
-            (js/console.log (:events new-state))
               ; redraw the calendar
               ;(js/console.log (pr (calendar-hiccup new-state)))
               ;(js/console.log new-state)
@@ -242,13 +253,18 @@
                                 (:event-source new-state)))
                 (fetch-events (:event-source new-state)))))
 
-;(inject-cal! @calendar-state)
 
 ;; javascript friendly externs
-;;  the external api
-
-(defn ^:export init []
- (inject-cal! @calendar-state))
+;;  aka the external api
+(defn ^:export init 
+  "init takes the id of the element to take over."
+  ([]
+  (do ;(js/console.log "defaulting to #calendar element")
+    (init "calendar")))
+ ([el-id]
+  ; this should kick off everything becuase the watchers have already been
+  ; attached
+  (swap! calendar-state assoc :container-id el-id)))
 
 (defn ^:export setEvents [events]
   (set-events! events))
@@ -263,20 +279,6 @@
 
 (defn ^:export setEventSource [f]
   (swap! calendar-state assoc :event-source f))
-
-
-;(js/console.log @calendar-state)
-;(js/console.log (:active-date @calendar-state))
-;(js/console.log calendar-state)
-;(js/console.log (calendar-hiccup (:active-date @calendar-state)))
-;(cljs.pprint/pprint (calendar-hiccup (:active-date @calendar-state)))
-;(def testhiccup 
-;  (list [:div {:id "test1"}]
-;        [:div {:id "test2"} (list [:div {:id "nesty1"}] 
-;                                  [:div {:id "nesty2"}])]))
-;(js/console.log testhiccup)
-;(js/console.log (hipo/create testhiccup))
-
 
 (defn on-js-reload []
   (js/console.log "reloading")
