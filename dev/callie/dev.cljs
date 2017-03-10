@@ -53,3 +53,24 @@
 (defn set-random-event-source! []
   (callie.core/set-event-source! random-event-source))
 
+
+(defn dummy-click [event x]
+  (console.log "dummy-click-event")
+  (console.log event)
+  (console.log x))
+
+;(set-event-click! dummy-click)
+
+(defn dummy-event-source [start end cb]
+  (js/console.log "dummy-event-source called")
+  ;(js/console.log "start param")
+  ;(js/console.log start)
+  ;(js/console.log "end param")
+  ;(js/console.log end)
+  ;(js/console.log "callback")
+  ;(js/console.log cb)
+  )
+
+;(set-event-source! dummy-event-source)
+
+

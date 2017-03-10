@@ -91,7 +91,6 @@
     (.add nd (Interval. Interval.DAYS 42))
     nd))
 
-
 (defn is-event-on-date? 
   [event date]
   (let [event-date (Date. (:start event))]
@@ -124,9 +123,20 @@
     (is-active-month? d calendar-state) (conj "active-month")
     (not (is-active-month? d calendar-state)) (conj "not-active-month")))
 
+(defn event-clj->js [event]
+  (let [converted-event (clj->js event)]
+    (set! (.-start converted-event) (.-date (.-start converted-event)))
+    converted-event))
+
+(defn event-click-fn
+  [ev calendar-state]
+  (if-let [click-handler (:event-click calendar-state)]
+      (fn [js-event] (click-handler (event-clj->js ev) js-event))
+    false))
+
 (defn event-div [ev calendar-state]
   [:div {:class "event-container"}
-   [:a {:class "callie-event" :on-click (:event-click calendar-state)} 
+   [:a {:class "callie-event" :on-click (event-click-fn ev calendar-state)}
     [:span.time (.format event-time-formatter (:start ev))]
     [:span.title (:title ev)]]])
 
@@ -197,35 +207,20 @@
 (defn set-event-source! [f]
   (swap! calendar-state assoc :event-source f))
 
-(defn dummy-event-source [start end cb]
-  (js/console.log "dummy-event-source called")
-  ;(js/console.log "start param")
-  ;(js/console.log start)
-  ;(js/console.log "end param")
-  ;(js/console.log end)
-  ;(js/console.log "callback")
-  ;(js/console.log cb)
-  )
-
-
-(set-event-source! dummy-event-source)
-
 
 (defn set-event-click! [f]
   (swap! calendar-state assoc :event-click f))
 
 
 (defn fetch-events [event-source]
-    (js/console.log event-source)
+  (when event-source
     (let [start (-> (:active-date @calendar-state)
                     (first-day)
-                    (date-to-datetime)
-                    (.toIsoString true true))
+                    (.toIsoString true))
           end (-> (:active-date @calendar-state)
                   (last-day)
-                  (date-to-datetime)
-                  (.toIsoString true true))]
-      (event-source start end set-events!)))
+                  (.toIsoString true))]
+      (event-source start end set-events!))))
 
 
 (add-watch calendar-state :redraw
@@ -249,9 +244,8 @@
 
 ;(inject-cal! @calendar-state)
 
-
 ;; javascript friendly externs
-;;
+;;  the external api
 
 (defn ^:export init []
  (inject-cal! @calendar-state))
@@ -260,10 +254,12 @@
   (set-events! events))
 
 (defn ^:export fetchEvents []
-  (js/console.error "not implemented"))
+  (if-let [event-source (:event-source @calendar-state)]
+    (fetch-events event-source)
+    (js/console.error "Cannot fetch events.  Event source is not set")))
   
 (defn ^:export setEventClick [f]
-  (set-event-click! [f]))
+  (set-event-click! f))
 
 (defn ^:export setEventSource [f]
   (swap! calendar-state assoc :event-source f))
