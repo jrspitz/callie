@@ -203,8 +203,14 @@
       (js/console.error (str "Container with id " container-id " not found.")))))
 
 (defn read-event [event]
-   (-> (js->clj event :keywordize-keys true)
-       (update-in [:start] DateTime.fromRfc822String)))
+  (-> (js->clj event :keywordize-keys true)
+      (update-in
+        [:start]
+        (fn [start-value]
+        ;; start property can either be a string or a datelike thing
+          (if (string? start-value)
+            (DateTime.fromRfc822String start-value)
+            (DateTime. start-value))))))
 
 (defn read-events [events]
   (sort-by #(.valueOf :start) (map read-event events)))
